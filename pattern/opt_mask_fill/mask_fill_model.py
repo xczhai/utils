@@ -15,6 +15,7 @@ class SimpleModel(torch.nn.Module):
         return out 
 
 def export_to_onnx(model, output_file_path, dummy_input_scores, dummy_input_mask):
+    print("== PYTORCH --> ONNX --> OPENVINO")
     # Export the model to ONNX
     with torch.no_grad():
         torch.onnx.export(
@@ -25,6 +26,13 @@ def export_to_onnx(model, output_file_path, dummy_input_scores, dummy_input_mask
             output_names=["output"],
             verbose=True,
         )
+    ov_model = convert_model(output_file_path)
+    serialize(ov_model, "onnx/ov_model.xml", "onnx/ov_model.bin")
+
+def export_to_pt(model, output_file_path, dummy_input_scores, dummy_input_mask):
+    print("== PYTORCH --> OPENVINO")
+    ov_model = convert_model(model, example_input=(dummy_input_scores, dummy_input_mask))
+    serialize(ov_model, "{}/ov_model.xml".format(output_file_path), "{}/ov_model.bin".format(output_file_path))
 
 if __name__ == "__main__":
     batch_size = 4
@@ -46,10 +54,10 @@ if __name__ == "__main__":
     # Print the masked attention weights
     print("Masked Attention Weights:")
     print(outputs)
-    # export_to_onnx(model, "onnx/simple_masked_fill.onnx", attention_scores, attention_mask)
+    export_to_onnx(model, "simple_masked_fill.onnx", attention_scores, attention_mask)
     # traced = torch.jit.trace(model, example_inputs=(attention_scores, attention_mask))
     # pdb.set_trace()
     # ov_model = convert_model(model)
+    export_to_pt(model, "pt", attention_scores, attention_mask)
     # ov_model = convert_model(model, example_input=(attention_scores, attention_mask))
     # serialize(ov_model, "pt/ov_model.xml", "pt/ov_model.bin")
-
